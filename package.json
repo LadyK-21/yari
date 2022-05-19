@@ -46,7 +46,10 @@
     "testPathIgnorePatterns": [
       "headless*",
       "developing.spec.js"
-    ]
+    ],
+    "transform": {
+      "^.+\\.[t|j]sx?$": "babel-jest"
+    }
   },
   "resolutions": {
     "@types/react": ">=18.0.0",
