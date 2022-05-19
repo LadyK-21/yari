@@ -1,14 +1,14 @@
 /**
  * @prettier
  */
-const { JSDOM } = require("jsdom");
+import { JSDOM } from "jsdom";
 
-const {
+import {
   beforeEachMacro,
   describeMacro,
   itMacro,
   lintHTML,
-} = require("./utils");
+} from "./utils";
 
 const SUMMARIES = {
   "en-US": [
