@@ -17,6 +17,7 @@ const { default: got } = require("got");
 const { splitSections } = require("./utils");
 const cheerio = require("cheerio");
 const { findByURL } = require("../content/document");
+import { buildDocument } from ".";
 
 const dirname = __dirname;
 
@@ -278,8 +279,6 @@ export async function buildSPAs(options) {
         continue;
       }
 
-      // circular dependency, so needs to be imported down here:
-      const { buildDocument } = require("./");
       const featuredArticles = (
         await Promise.all(
           FEATURED_ARTICLES.map(async (url) => {
