@@ -32,7 +32,7 @@ const {
   GOOGLE_ANALYTICS_ACCOUNT,
   GOOGLE_ANALYTICS_DEBUG,
   VALID_FLAW_CHECKS,
-} = require("../build/constants");
+} = require("../libs/env");
 const { runMakePopularitiesFile } = require("./popularities");
 const { runOptimizeClientBuild } = require("./optimize-client-build");
 const { runBuildRobotsTxt } = require("./build-robots-txt");
