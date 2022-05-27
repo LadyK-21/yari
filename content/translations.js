@@ -1,5 +1,5 @@
 const Document = require("./document");
-const { VALID_LOCALES } = require("./constants");
+const { VALID_LOCALES } = require("../libs/env");
 const LANGUAGES_RAW = require("./languages.json");
 
 const LANGUAGES = new Map(
