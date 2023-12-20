@@ -125,7 +125,7 @@
   "devDependencies": {
     "@babel/core": "^7.18.2",
     "@babel/eslint-parser": "^7.18.2",
-    "@babel/preset-env": "^7.18.2",
+    "@babel/preset-env": "^7.22.0",
     "@mdn/dinocons": "^0.5.5",
     "@mdn/minimalist": "^2.0.4",
     "@playwright/test": "^1.22.2",
@@ -180,7 +180,7 @@
     "sass": "^1.52.1",
     "source-map-explorer": "^2.5.2",
     "style-dictionary": "^3.7.0",
-    "stylelint": "^13.13.1",
+    "stylelint": "^14.0.0",
     "stylelint-a11y": "^1.2.3",
     "stylelint-config-prettier": "^9.0.3",
     "stylelint-config-recommended": "^5.0.0",
