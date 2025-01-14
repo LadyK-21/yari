@@ -11,6 +11,7 @@
 
   .highlight {
     font-style: italic;
+    font-variation-settings: "slnt" -10;
   }
 
   .nerd-data {
@@ -20,7 +21,7 @@
 }
 
 .pagination {
-  @media screen and (min-width: $screen-md) {
+  @media (min-width: $screen-md) {
     display: flex;
     justify-content: space-between;
   }
@@ -44,6 +45,7 @@
     margin: 0;
     margin-bottom: 0.25rem;
     padding: 0;
+    word-break: break-word;
 
     a {
       &:link,
@@ -69,7 +71,7 @@
     position: relative;
     top: -3px;
 
-    @media screen and (max-width: $screen-sm) {
+    @media (max-width: $screen-sm) {
       display: inline-block;
       margin: 0;
       margin-left: 0.25rem;
@@ -79,9 +81,10 @@
 
   mark {
     background: var(--background-mark-yellow);
-    color: var(--text-primary);
     border-radius: var(--elem-radius);
+    color: var(--text-primary);
     font-style: italic;
+    font-variation-settings: "slnt" -10;
   }
 }
 
@@ -89,7 +92,7 @@
   margin: 4rem 0;
   word-wrap: break-word;
 
-  @media screen and (max-width: $screen-sm) {
+  @media (max-width: $screen-sm) {
     margin-bottom: 2.5rem;
   }
 }
@@ -102,7 +105,7 @@
     font-size: 1rem;
     margin: 0;
 
-    @media screen and (max-width: $screen-sm) {
+    @media (max-width: $screen-sm) {
       display: inline;
     }
   }
@@ -111,7 +114,7 @@
   .sort-option-list {
     display: inline-block;
 
-    @media screen and (max-width: $screen-sm) {
+    @media (max-width: $screen-sm) {
       margin-left: 1rem;
     }
 

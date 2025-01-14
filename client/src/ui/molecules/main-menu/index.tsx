@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 
-import { GuidesMenu } from "../guides-menu";
+import { LearnMenu } from "../learn-menu";
 import { ReferenceMenu } from "../reference-menu";
 import { PlusMenu } from "../plus-menu";
 
 import "./index.scss";
-import { PLUS_IS_ENABLED } from "../../../constants";
+import { PLUS_IS_ENABLED } from "../../../env";
+import { useGleanClick } from "../../../telemetry/glean-context";
+import { MENU } from "../../../telemetry/constants";
+import { useLocation } from "react-router";
+import { ToolsMenu } from "../tools-menu";
 
 export default function MainMenu({ isOpenOnMobile }) {
   const previousActiveElement = useRef<null | HTMLButtonElement>(null);
@@ -67,7 +71,7 @@ export default function MainMenu({ isOpenOnMobile }) {
           visibleSubMenuId={visibleSubMenuId}
           toggleMenu={toggleMenu}
         />
-        <GuidesMenu
+        <LearnMenu
           visibleSubMenuId={visibleSubMenuId}
           toggleMenu={toggleMenu}
         />
@@ -77,7 +81,42 @@ export default function MainMenu({ isOpenOnMobile }) {
             toggleMenu={toggleMenu}
           />
         )}
+        <TopLevelMenuLink to="/en-US/curriculum/">
+          <>
+            Curriculum <sup className="new">New</sup>
+          </>
+        </TopLevelMenuLink>
+        <TopLevelMenuLink to="/en-US/blog/">Blog</TopLevelMenuLink>
+        <ToolsMenu
+          visibleSubMenuId={visibleSubMenuId}
+          toggleMenu={toggleMenu}
+        />
       </ul>
     </nav>
+  );
+}
+
+function TopLevelMenuLink({
+  to,
+  children,
+}: {
+  to: string;
+  children: React.ReactNode;
+}) {
+  const { pathname } = useLocation();
+  const gleanClick = useGleanClick();
+
+  const isActive = pathname.startsWith(to.split("#", 2)[0]);
+
+  return (
+    <li className={`top-level-entry-container ${isActive ? "active" : ""}`}>
+      <a
+        className="top-level-entry menu-link"
+        href={to}
+        onClick={() => gleanClick(`${MENU.CLICK_LINK}: top-level -> ${to}`)}
+      >
+        {children}
+      </a>
+    </li>
   );
 }

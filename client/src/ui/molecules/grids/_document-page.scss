@@ -4,7 +4,6 @@
   .page-header,
   .generic-loading,
   .article-actions-container,
-  .localized-content-note,
   .document-toc-container,
   .main-content,
   .sidebar,
@@ -21,31 +20,32 @@
 
 .main-wrapper {
   display: flex;
-  max-width: var(--max-width);
   margin: 0 auto;
+  max-width: var(--max-width);
 
   .toc {
     display: none;
   }
 
-  @media screen and (min-width: $screen-md) {
+  @media (min-width: $screen-md) {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
     gap: 3rem;
+    grid-template-areas: "sidebar main";
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
     padding-left: 1.5rem;
     padding-right: 3rem;
-    grid-template-areas: "sidebar main";
 
     .sidebar,
     .toc,
     .main-content {
-      padding-top: 3rem;
       padding-bottom: 3rem;
+      padding-top: 3rem;
     }
 
     .sidebar {
-      grid-area: sidebar;
       align-self: start;
+      grid-area: sidebar;
+      padding-top: unset;
     }
 
     .main-content {
@@ -53,24 +53,21 @@
     }
   }
 
-  @media screen and (min-width: $screen-xl) {
+  @media (min-width: $screen-xl) {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 2.5fr) minmax(0, 15rem);
     gap: 3rem;
     grid-template-areas: "sidebar main toc";
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.5fr) minmax(0, 15rem);
     padding-left: 1rem;
     padding-right: 1rem;
 
     .toc {
-      --offset: var(--main-document-header-height);
-      --max-height: calc(100vh - var(--offset));
+      --offset: var(--sticky-header-with-actions-height);
 
       display: block;
       grid-area: toc;
-      max-height: var(--max-height);
-      position: sticky;
-      overflow: auto;
-      top: var(--offset);
+      height: fit-content;
+      padding-bottom: 0;
     }
 
     .in-nav-toc {

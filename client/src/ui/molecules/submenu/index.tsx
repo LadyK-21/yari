@@ -1,7 +1,9 @@
+import { ReactNode } from "react";
+import { MENU } from "../../../telemetry/constants";
+import { useGleanClick } from "../../../telemetry/glean-context";
 import "./index.scss";
-import React from "react";
 
-type SubmenuItem = {
+export type SubmenuItem = {
   component?: () => JSX.Element;
   description?: string;
   extraClasses?: string | null;
@@ -16,7 +18,7 @@ type SubmenuItem = {
 export type MenuEntry = {
   id: string;
   items: SubmenuItem[];
-  label: string;
+  label: string | ReactNode;
   to?: string;
 };
 
@@ -33,13 +35,13 @@ export const Submenu = ({
   submenuId?: string;
   extraClasses?: string;
 }) => {
+  const gleanClick = useGleanClick();
   return (
     <ul
       id={submenuId}
       className={`${isDropdown ? "dropdown-list" : "submenu"} ${menuEntry.id} ${
         defaultHidden ? "hidden" : ""
       } ${extraClasses || ""}`}
-      role="menu"
       aria-labelledby={`${menuEntry.id}-button`}
     >
       {menuEntry.items &&
@@ -48,7 +50,6 @@ export const Submenu = ({
           return (
             <li
               key={key}
-              role="menuitem"
               className={`${item.extraClasses || ""} ${
                 isDropdown ? "dropdown-item" : ""
               }`}
@@ -61,7 +62,11 @@ export const Submenu = ({
                   className={`submenu-item ${
                     item.url.startsWith("https://") ? "external" : ""
                   }`}
-                  role="menuitem"
+                  onClick={() =>
+                    gleanClick(
+                      `${MENU.CLICK_SUBMENU}: ${menuEntry.id} -> ${item.url}`
+                    )
+                  }
                 >
                   {item.hasIcon && <div className={item.iconClasses} />}
                   {item.dot && (

@@ -1,42 +1,42 @@
 import React, { ReactElement } from "react";
 import useSWR from "swr";
-import { CRUD_MODE } from "../../constants";
+import { DEV_MODE, PLACEMENT_ENABLED } from "../../env";
 import { SidebarContainer } from "../../document/organisms/sidebar";
 import { TOC } from "../../document/organisms/toc";
-import { DocParent, Toc } from "../../document/types";
+import { Section, Toc } from "../../../../libs/types/document";
 import { PageNotFound } from "../../page-not-found";
 import { Loading } from "../../ui/atoms/loading";
-import { useUIStatus } from "../../ui-context";
-import { Button } from "../../ui/atoms/button";
-import { Breadcrumbs } from "../../ui/molecules/breadcrumbs";
+import { SidePlacement } from "../../ui/organisms/placement";
+import { Prose } from "../../document/ingredients/prose";
 
 interface StaticPageDoc {
   id: string;
   title: string;
-  sections: string[];
+  sections: Section[];
   toc: Toc[];
 }
 
-interface StaticPageProps {
+export interface StaticPageProps {
   extraClasses?: string;
   locale: string;
   slug: string;
-  parents: DocParent[];
   fallbackData?: any;
   title?: string;
   sidebarHeader?: ReactElement;
+  children?: React.ReactNode;
+  additionalToc?: Toc[];
 }
 
 function StaticPage({
   extraClasses = "",
   locale,
   slug,
-  parents = [],
   fallbackData = undefined,
   title = "MDN",
   sidebarHeader = <></>,
+  children = <></>,
+  additionalToc = [],
 }: StaticPageProps) {
-  const { isSidebarOpen, setIsSidebarOpen } = useUIStatus();
   const baseURL = `/${locale}/${slug}`;
   const featureJSONUrl = `${baseURL}/index.json`;
   const { data: { hyData } = {}, error } = useSWR<{ hyData: StaticPageDoc }>(
@@ -51,7 +51,7 @@ function StaticPage({
     },
     {
       fallbackData,
-      revalidateOnFocus: CRUD_MODE,
+      revalidateOnFocus: DEV_MODE,
       revalidateOnMount: !fallbackData,
     }
   );
@@ -66,40 +66,30 @@ function StaticPage({
     return <Loading />;
   }
 
-  const toc = hyData.toc?.length && <TOC toc={hyData.toc} />;
-
   return (
     <>
-      <div className="article-actions-container">
-        <div className="container">
-          <Button
-            extraClasses="sidebar-button"
-            icon="sidebar"
-            type="action"
-            onClickHandler={() => setIsSidebarOpen(!isSidebarOpen)}
-          />
-
-          {
-            <Breadcrumbs
-              parents={[...parents, { uri: baseURL, title: hyData.title }]}
-            />
-          }
-        </div>
-      </div>
-
       <div className="main-wrapper">
-        <SidebarContainer doc={hyData}>
-          {sidebarHeader || null}
-        </SidebarContainer>
-        <div className="toc">{toc || null}</div>
+        <div className="sidebar-container">
+          <SidebarContainer doc={hyData}>
+            {sidebarHeader || null}
+          </SidebarContainer>
+          <div className="toc-container">
+            <aside className="toc">
+              <nav>
+                {hyData.toc && !!hyData.toc.length && (
+                  <TOC toc={[...hyData.toc, ...additionalToc]} />
+                )}
+              </nav>
+            </aside>
+            {PLACEMENT_ENABLED && <SidePlacement />}
+          </div>
+        </div>
         <main id="content" className="main-content" role="main">
           <article className={`main-page-content ${extraClasses || ""}`}>
             {hyData.sections.map((section, index) => (
-              <section
-                key={index}
-                dangerouslySetInnerHTML={{ __html: section }}
-              ></section>
+              <Prose key={section.value.id || index} section={section.value} />
             ))}
+            {children}
           </article>
         </main>
       </div>

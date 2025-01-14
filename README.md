@@ -1,7 +1,7 @@
 # Yari
 
 ![Testing](https://github.com/mdn/yari/workflows/Testing%20Yari/badge.svg)
-![Production Build](https://github.com/mdn/yari/workflows/Production%20Build/badge.svg)
+![Prod Build](https://github.com/mdn/yari/workflows/Prod%20Build/badge.svg)
 
 ## Quickstart
 
@@ -19,8 +19,8 @@ Before you can start working with Yari, you need to:
     So for now let's make an exception. -->
 <!-- markdownlint-disable list-marker-space -->
 
-1.  Install [git](https://git-scm.com/), [Node.js](https://nodejs.org) (>=
-    16.0.0), and [Yarn 1](https://classic.yarnpkg.com/en/docs/install).
+1.  Install [git](https://git-scm.com/), [Node.js](https://nodejs.org), and
+    [Yarn 1](https://classic.yarnpkg.com/en/docs/install).
 
 1.  [Fork](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo)
     the MDN [content](https://github.com/mdn/content) and
@@ -40,6 +40,9 @@ app locally. Do this like so:
 
     cd yari
     yarn install
+
+See the [troubleshooting](#troubleshooting) section below if you run into
+problems.
 
 Now copy the `.env-dist` file to `.env`:
 
@@ -105,6 +108,14 @@ All source code is [MPL-2.0](https://www.mozilla.org/en-US/MPL/2.0/).
 For content, see its
 [license](https://github.com/mdn/content/blob/main/LICENSE.md) in the
 [mdn/content repository](https://github.com/mdn/content).
+
+## Supported Platforms
+
+`yari` runs on Linux in CI, and when building for Production.
+
+We also support Windows and MacOS, however we don't aim to proactively catch
+issues with CI on those platforms. If bugs arise, we welcome issues being filed,
+or PRs being opened to fix them.
 
 ## How it works
 
@@ -173,35 +184,6 @@ We maintain the dependencies using `Dependabot` in GitHub but if you want to
 manually upgrade them you can use:
 
     yarn upgrade-interactive --latest
-
-### Sharing your dev environment with `ngrok`
-
-[`ngrok`](https://ngrok.com/) allows you to start an HTTP proxy server from the
-web into your Yari server. This can be useful for testing your current build
-using external tools like BrowserStack, WebPageTest, or Google Translate, or to
-simply show a friend what you're up to. Obviously it'll never be faster than
-your uplink Internet connection but it should be fairly feature-complete.
-
-1. [Create in account on Ngrok.com](https://dashboard.ngrok.com/signup)
-2. [Download the executable](https://ngrok.com/download)
-3. Start your Yari server with `yarn start` in one terminal
-4. Start the `ngrok` executable with: `/path/to/your/ngrok http 5042`
-
-This will display something like this:
-
-    Session Status                online
-    Account                       (Plan: Free)
-    Version                       2.3.35
-    Region                        United States (us)
-    Web Interface                 http://127.0.0.1:4040
-    Forwarding                    http://920ba2108da8.ngrok.io -> http://localhost:5042
-    Forwarding                    https://920ba2108da8.ngrok.io -> http://localhost:5042
-
-    Connections                   ttl     opn     rt1     rt5     p50     p90
-                                  0       0       0.00    0.00    0.00    0.00
-
-Now, take that "Forwarding" URL (`https://920ba2108da8.ngrok.io` in this
-example) and share it.
 
 ## Building
 
@@ -286,3 +268,35 @@ The default server port `:5042` might be in use by another process. To resolve
 this, you can pick any unused port (e.g., 6000) and run the following:
 
     echo SERVER_PORT=6000 >> .env
+
+### Problems running with rari on Windows
+
+Download and install:
+
+Microsoft Visual C++ Redistributable for Visual Studio 2019 (
+[x86](https://aka.ms/vs/16/release/VC_redist.x86.exe),
+[ARM64](https://aka.ms/vs/16/release/VC_redist.arm64.exe) )
+
+### Yarn install errors
+
+If you get errors while installing dependencies via yarn on a Mac, you may need
+to install some additional packages. Check the error message for the package
+name causing the problem.
+
+1. First, install [brew](https://brew.sh/) if you haven’t already
+
+1. To fix problems with `gifsicle`:
+
+   brew install automake autoconf libtool
+
+1. To fix problems with `pngquant-bin`:
+
+   brew install pkg-config
+
+1. To fix problems with `mozjpeg`:
+
+   brew install libpng sudo ln -s
+   /opt/homebrew/Cellar/libpng/1.6.40/lib/libpng16.a /usr/local/lib/libpng16.a
+
+You may need to adjust the path to `libpng16.a` depending on the version of
+`libpng` you have installed.

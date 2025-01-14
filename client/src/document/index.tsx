@@ -1,17 +1,12 @@
 import React from "react";
-import { useSearchParams, useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import useSWR, { mutate } from "swr";
 
-import { CRUD_MODE } from "../constants";
-import { useGA } from "../ga-context";
-import { useIsServer } from "../hooks";
+import { WRITER_MODE, PLACEMENT_ENABLED } from "../env";
+import { useIsServer, useLocale } from "../hooks";
 
-import {
-  useDocumentURL,
-  useCopyExamplesToClipboard,
-  usePersistFrequentlyViewed,
-} from "./hooks";
-import { Doc } from "./types";
+import { useDocumentURL, useDecorateCodeExamples, useRunSample } from "./hooks";
+import { Doc } from "../../../libs/types/document";
 // Ingredients
 import { Prose } from "./ingredients/prose";
 import { LazyBrowserCompatibilityTable } from "./lazy-bcd-table";
@@ -25,10 +20,10 @@ import { LocalizedContentNote } from "./molecules/localized-content-note";
 import { OfflineStatusBar } from "../ui/molecules/offline-status-bar";
 import { TOC } from "./organisms/toc";
 import { RenderSideBar } from "./organisms/sidebar";
-import { RetiredLocaleNote } from "./molecules/retired-locale-note";
 import { MainContentContainer } from "../ui/atoms/page-content";
 import { Loading } from "../ui/atoms/loading";
-import { Metadata } from "./organisms/metadata";
+import { ArticleFooter } from "./organisms/article-footer";
+import { PageNotFound } from "../page-not-found";
 
 import "./index.scss";
 
@@ -39,20 +34,39 @@ import "./index.scss";
 // code could come with its own styling rather than it having to be part of the
 // main bundle all the time.
 import "./interactive-examples.scss";
+import { DocumentSurvey } from "../ui/molecules/document-survey";
+import { useIncrementFrequentlyViewed } from "../plus/collections/frequently-viewed";
+import { useInteractiveExamplesActionHandler as useInteractiveExamplesTelemetry } from "../telemetry/interactive-examples";
+import { BottomBanner, SidePlacement } from "../ui/organisms/placement";
+import { BaselineIndicator } from "./baseline-indicator";
+import { PlayQueue } from "../playground/queue";
+import { useGleanClick } from "../telemetry/glean-context";
+import { CLIENT_SIDE_NAVIGATION } from "../telemetry/constants";
 // import { useUIStatus } from "../ui-context";
 
 // Lazy sub-components
 const Toolbar = React.lazy(() => import("./toolbar"));
 const MathMLPolyfillMaybe = React.lazy(() => import("./mathml-polyfill"));
 
+export class HTTPError extends Error {
+  public readonly status: number;
+  public readonly url: string;
+  public readonly text: string;
+  constructor(status: number, url: string, text: string) {
+    super(`${status} on ${url}: ${text}`);
+    this.status = status;
+    this.url = url;
+    this.text = text;
+  }
+}
+
 export function Document(props /* TODO: define a TS interface for this */) {
-  const ga = useGA();
+  const gleanClick = useGleanClick();
   const isServer = useIsServer();
 
   const mountCounter = React.useRef(0);
   const documentURL = useDocumentURL();
-  const { locale = "en-US" } = useParams();
-  const [searchParams] = useSearchParams();
+  const locale = useLocale();
 
   const navigate = useNavigate();
 
@@ -72,7 +86,7 @@ export function Document(props /* TODO: define a TS interface for this */) {
       if (!response.ok) {
         switch (response.status) {
           case 404:
-            throw new Error(`${response.status} on ${url}: Page not found`);
+            throw new HTTPError(response.status, url, "Page not found");
 
           case 504:
             if (previousDoc.current) {
@@ -81,7 +95,7 @@ export function Document(props /* TODO: define a TS interface for this */) {
         }
 
         const text = await response.text();
-        throw new Error(`${response.status} on ${url}: ${text}`);
+        throw new HTTPError(response.status, url, text);
       }
 
       const { doc } = await response.json();
@@ -95,13 +109,17 @@ export function Document(props /* TODO: define a TS interface for this */) {
     },
     {
       fallbackData,
-      revalidateOnFocus: CRUD_MODE,
+      revalidateOnFocus: WRITER_MODE,
       revalidateOnMount: !fallbackData,
-      refreshInterval: CRUD_MODE ? 500 : 0,
+      refreshInterval: WRITER_MODE ? 500 : 0,
     }
   );
-  usePersistFrequentlyViewed(doc);
-  useCopyExamplesToClipboard(doc);
+
+  useIncrementFrequentlyViewed(doc);
+  useRunSample(doc);
+  //useCollectSample(doc);
+  useDecorateCodeExamples(doc);
+  useInteractiveExamplesTelemetry();
 
   React.useEffect(() => {
     if (!doc && !error) {
@@ -116,22 +134,15 @@ export function Document(props /* TODO: define a TS interface for this */) {
   React.useEffect(() => {
     if (doc && !error) {
       if (mountCounter.current > 0) {
-        // 'dimension19' means it's a client-side navigation.
-        // I.e. not the initial load but the location has now changed.
-        // Note that in local development, where you use `localhost:3000`
-        // this will always be true because it's always client-side navigation.
-        ga("set", "dimension19", "Yes");
-        ga("send", {
-          hitType: "pageview",
-          location: window.location.toString(),
-        });
+        const location = window.location.toString();
+        gleanClick(`${CLIENT_SIDE_NAVIGATION}: ${location}`);
       }
 
       // By counting every time a document is mounted, we can use this to know if
       // a client-side navigation happened.
       mountCounter.current++;
     }
-  }, [ga, doc, error]);
+  }, [gleanClick, doc, error]);
 
   React.useEffect(() => {
     const location = document.location;
@@ -166,7 +177,20 @@ export function Document(props /* TODO: define a TS interface for this */) {
   }
 
   if (error) {
-    return <LoadingError error={error} />;
+    return (
+      <>
+        <div className="sticky-header-container">
+          <TopNavigation />
+        </div>
+        <MainContentContainer>
+          {error instanceof HTTPError && error.status === 404 ? (
+            <PageNotFound />
+          ) : (
+            <LoadingError error={error} />
+          )}
+        </MainContentContainer>
+      </>
+    );
   }
 
   if (!doc) {
@@ -175,32 +199,30 @@ export function Document(props /* TODO: define a TS interface for this */) {
 
   return (
     <>
-      <div className="main-document-header-container">
+      <div className="sticky-header-container">
         <TopNavigation />
         <ArticleActionsContainer doc={doc} />
       </div>
       {/* only include this if we are not server-side rendering */}
       {!isServer && <OfflineStatusBar />}
-      {doc.isTranslated ? (
+      {doc.isTranslated && (
         <div className="container">
           <LocalizedContentNote isActive={doc.isActive} locale={locale} />
         </div>
-      ) : (
-        searchParams.get("retiredLocale") && (
-          <div className="container">
-            <RetiredLocaleNote />
-          </div>
-        )
       )}
       <div className="main-wrapper">
-        <RenderSideBar doc={doc} />
-
-        <div className="toc">
-          {doc.toc && !!doc.toc.length && <TOC toc={doc.toc} />}
+        <div className="sidebar-container">
+          <RenderSideBar doc={doc} />
+          <div className="toc-container">
+            <aside className="toc">
+              <nav>{doc.toc && !!doc.toc.length && <TOC toc={doc.toc} />}</nav>
+            </aside>
+            {PLACEMENT_ENABLED && <SidePlacement />}
+          </div>
         </div>
 
         <MainContentContainer>
-          {!isServer && CRUD_MODE && !props.isPreview && doc.isActive && (
+          {!isServer && WRITER_MODE && !props.isPreview && doc.isActive && (
             <React.Suspense fallback={<Loading message={"Loading toolbar"} />}>
               <Toolbar
                 doc={doc}
@@ -217,17 +239,23 @@ export function Document(props /* TODO: define a TS interface for this */) {
             </React.Suspense>
           )}
           <article className="main-page-content" lang={doc.locale}>
-            <h1>{doc.title}</h1>
+            <header>
+              <h1>{doc.title}</h1>
+              {doc.baseline && <BaselineIndicator status={doc.baseline} />}
+            </header>
+            <DocumentSurvey doc={doc} />
             <RenderDocumentBody doc={doc} />
-            <Metadata doc={doc} locale={locale} />
           </article>
+          <ArticleFooter doc={doc} />
         </MainContentContainer>
+        {false && <PlayQueue standalone={true} />}
       </div>
+      <BottomBanner />
     </>
   );
 }
 
-function RenderDocumentBody({ doc }) {
+export function RenderDocumentBody({ doc }) {
   return doc.body.map((section, i) => {
     if (section.type === "prose") {
       return <Prose key={section.value.id} section={section.value} />;
@@ -251,8 +279,8 @@ function RenderDocumentBody({ doc }) {
 
 function LoadingError({ error }) {
   return (
-    <div className="standard-page">
-      <div id="content" className="page-content-container loading-error">
+    <div className="main-wrapper">
+      <div id="content" className="main-content loading-error">
         <h3>Loading Error</h3>
         {error instanceof window.Response ? (
           <p>
@@ -261,9 +289,7 @@ function LoadingError({ error }) {
             <small>{error.statusText}</small>
           </p>
         ) : (
-          <p>
-            <code>{error.toString()}</code>
-          </p>
+          <pre>{error.toString()}</pre>
         )}
         <p>
           <button

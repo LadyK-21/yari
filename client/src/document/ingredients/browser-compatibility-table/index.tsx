@@ -1,13 +1,22 @@
-import React, { useReducer } from "react";
+import React, { useReducer, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { browsers as browserData } from "@mdn/browser-compat-data";
-import type bcd from "@mdn/browser-compat-data/types";
+import type BCD from "@mdn/browser-compat-data/types";
 import { BrowserInfoContext } from "./browser-info";
 import { BrowserCompatibilityErrorBoundary } from "./error-boundary";
 import { FeatureRow } from "./feature-row";
 import { Headers } from "./headers";
 import { Legend } from "./legend";
-import { listFeatures } from "./utils";
+import {
+  getCurrentSupport,
+  hasMore,
+  hasNoteworthyNotes,
+  listFeatures,
+  SupportStatementExtended,
+  versionIsPreview,
+} from "./utils";
+import { useViewed } from "../../../hooks";
+import { BCD_TABLE } from "../../../telemetry/constants";
+import { useGleanClick } from "../../../telemetry/glean-context";
 
 // Note! Don't import any SCSS here inside *this* component.
 // It's done in the component that lazy-loads this component.
@@ -25,6 +34,8 @@ const ISSUE_METADATA_TEMPLATE = `
 </details>
 `;
 
+export const HIDDEN_BROWSERS = ["ie"];
+
 /**
  * Return a list of platforms and browsers that are relevant for this category &
  * data.
@@ -37,8 +48,9 @@ const ISSUE_METADATA_TEMPLATE = `
  */
 function gatherPlatformsAndBrowsers(
   category: string,
-  data: bcd.Identifier
-): [string[], bcd.BrowserNames[]] {
+  data: BCD.Identifier,
+  browserInfo: BCD.Browsers
+): [string[], BCD.BrowserName[]] {
   const hasNodeJSData = data.__compat && "nodejs" in data.__compat.support;
   const hasDenoData = data.__compat && "deno" in data.__compat.support;
 
@@ -47,21 +59,21 @@ function gatherPlatformsAndBrowsers(
     platforms.push("server");
   }
 
-  let browsers: bcd.BrowserNames[] = [];
+  let browsers: BCD.BrowserName[] = [];
 
   // Add browsers in platform order to align table cells
   for (const platform of platforms) {
     browsers.push(
-      ...(Object.keys(browserData).filter(
-        (browser) => browserData[browser].type === platform
-      ) as bcd.BrowserNames[])
+      ...(Object.keys(browserInfo).filter(
+        (browser) => browserInfo[browser].type === platform
+      ) as BCD.BrowserName[])
     );
   }
 
   // Filter WebExtension browsers in corresponding tables.
   if (category === "webextensions") {
     browsers = browsers.filter(
-      (browser) => browserData[browser].accepts_webextensions
+      (browser) => browserInfo[browser].accepts_webextensions
     );
   }
 
@@ -71,6 +83,9 @@ function gatherPlatformsAndBrowsers(
     browsers = browsers.filter((browser) => browser !== "nodejs");
   }
 
+  // Hide Internet Explorer compatibility data
+  browsers = browsers.filter((browser) => !HIDDEN_BROWSERS.includes(browser));
+
   return [platforms, [...browsers]];
 }
 
@@ -79,11 +94,15 @@ type CellIndex = [number, number];
 function FeatureListAccordion({
   features,
   browsers,
+  browserInfo,
   locale,
+  query,
 }: {
   features: ReturnType<typeof listFeatures>;
-  browsers: bcd.BrowserNames[];
+  browsers: BCD.BrowserName[];
+  browserInfo: BCD.Browsers;
   locale: string;
+  query: string;
 }) {
   const [[activeRow, activeColumn], dispatchCellToggle] = useReducer<
     React.Reducer<CellIndex | [null, null], CellIndex>
@@ -95,6 +114,9 @@ function FeatureListAccordion({
     [null, null]
   );
 
+  const gleanClick = useGleanClick();
+  const clickedCells = useRef(new Set<string>());
+
   return (
     <>
       {features.map((feature, i) => (
@@ -105,6 +127,92 @@ function FeatureListAccordion({
           activeCell={activeRow === i ? activeColumn : null}
           onToggleCell={([row, column]: [number, number]) => {
             dispatchCellToggle([row, column]);
+
+            const cell = `${column}:${row}`;
+            if (clickedCells.current.has(cell)) {
+              return;
+            } else {
+              clickedCells.current.add(cell);
+            }
+
+            const feature = features[row];
+            const browser = browsers[column];
+            const support = feature.compat.support[browser];
+
+            function getCurrentSupportType(
+              support: SupportStatementExtended | undefined,
+              browser: BCD.BrowserStatement
+            ):
+              | "no"
+              | "yes"
+              | "partial"
+              | "preview"
+              | "removed"
+              | "removed-partial"
+              | "unknown" {
+              if (!support) {
+                return "unknown";
+              }
+
+              const currentSupport = getCurrentSupport(support)!;
+
+              const {
+                flags,
+                version_added,
+                version_removed,
+                partial_implementation,
+              } = currentSupport;
+
+              if (version_added === null) {
+                return "unknown";
+              } else if (versionIsPreview(version_added, browser)) {
+                return "preview";
+              } else if (version_added) {
+                if (version_removed) {
+                  if (partial_implementation) {
+                    return "removed-partial";
+                  } else {
+                    return "removed";
+                  }
+                } else if (flags && flags.length) {
+                  return "no";
+                } else if (partial_implementation) {
+                  return "partial";
+                } else {
+                  return "yes";
+                }
+              } else {
+                return "no";
+              }
+            }
+
+            function getCurrentSupportAttributes(
+              support: SupportStatementExtended | undefined
+            ): string[] {
+              const supportItem = getCurrentSupport(support);
+
+              if (!supportItem) {
+                return [];
+              }
+
+              return [
+                !!supportItem.prefix && "pre",
+                hasNoteworthyNotes(supportItem) && "note",
+                !!supportItem.alternative_name && "alt",
+                !!supportItem.flags && "flag",
+                hasMore(support) && "more",
+              ].filter((value) => typeof value === "string");
+            }
+
+            const supportType = getCurrentSupportType(
+              support,
+              browserInfo[browser]
+            );
+            const attrs = getCurrentSupportAttributes(support);
+
+            gleanClick(
+              `${BCD_TABLE}: click ${browser} ${query} -> ${feature.name} = ${supportType} [${attrs.join(",")}]`
+            );
           }}
           locale={locale}
         />
@@ -120,11 +228,21 @@ export default function BrowserCompatibilityTable({
   locale,
 }: {
   query: string;
-  data: bcd.Identifier;
-  browsers: bcd.Browsers;
+  data: BCD.Identifier;
+  browsers: BCD.Browsers;
   locale: string;
 }) {
   const location = useLocation();
+  const gleanClick = useGleanClick();
+
+  const observedNode = useViewed(
+    () => {
+      gleanClick(`${BCD_TABLE}: view -> ${query}`);
+    },
+    {
+      threshold: 0,
+    }
+  );
 
   if (!data || !Object.keys(data).length) {
     throw new Error(
@@ -136,7 +254,11 @@ export default function BrowserCompatibilityTable({
   const category = breadcrumbs[0];
   const name = breadcrumbs[breadcrumbs.length - 1];
 
-  const [platforms, browsers] = gatherPlatformsAndBrowsers(category, data);
+  const [platforms, browsers] = gatherPlatformsAndBrowsers(
+    category,
+    data,
+    browserInfo
+  );
 
   function getNewIssueURL() {
     const url = "https://github.com/mdn/browser-compat-data/issues/new";
@@ -166,20 +288,30 @@ export default function BrowserCompatibilityTable({
         >
           Report problems with this compatibility data on GitHub
         </a>
-        <div className="table-scroll">
-          <div className="table-scroll-inner">
-            <table key="bc-table" className="bc-table bc-table-web">
-              <Headers {...{ platforms, browsers }} />
+        <figure className="table-container">
+          <figure className="table-container-inner">
+            <table
+              key="bc-table"
+              className="bc-table bc-table-web"
+              ref={observedNode}
+            >
+              <Headers
+                platforms={platforms}
+                browsers={browsers}
+                browserInfo={browserInfo}
+              />
               <tbody>
                 <FeatureListAccordion
                   browsers={browsers}
+                  browserInfo={browserInfo}
                   features={listFeatures(data, "", name)}
                   locale={locale}
+                  query={query}
                 />
               </tbody>
             </table>
-          </div>
-        </div>
+          </figure>
+        </figure>
         <Legend compat={data} name={name} />
 
         {/* https://github.com/mdn/yari/issues/1191 */}

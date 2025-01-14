@@ -1,53 +1,73 @@
 import React, { useEffect } from "react";
-import { Routes, Route, useLocation, useMatch } from "react-router-dom";
+import {
+  Navigate,
+  Routes,
+  Route,
+  useLocation,
+  useMatch,
+} from "react-router-dom";
 
 // we include our base SASS here to ensure it is loaded
 // and applied before any component specific style
 import "./app.scss";
 
-import { CRUD_MODE, PLUS_IS_ENABLED } from "./constants";
+import { WRITER_MODE, PLACEMENT_ENABLED, PLUS_IS_ENABLED } from "./env";
 import { Homepage } from "./homepage";
 import { Document } from "./document";
 import { A11yNav } from "./ui/molecules/a11y-nav";
 import { Footer } from "./ui/organisms/footer";
 import { TopNavigation } from "./ui/organisms/top-navigation";
 import { SiteSearch } from "./site-search";
-import { Loading } from "./ui/atoms/loading";
-import { PageContentContainer } from "./ui/atoms/page-content";
 import { PageNotFound } from "./page-not-found";
 import { Plus } from "./plus";
 import { About } from "./about";
-import { OfflineSettings } from "./offline-settings";
-import { docCategory } from "./utils";
-import { Contribute } from "./community";
+import { getCategoryByPathname } from "./utils";
+import { Community } from "./community";
 import { ContributorSpotlight } from "./contributor-spotlight";
-import { useIsServer } from "./hooks";
+import { useIsServer, usePing } from "./hooks";
 
-import { Banner, hasActiveBanners } from "./banners";
+import { useGleanPage } from "./telemetry/glean-context";
+import { MainContentContainer } from "./ui/atoms/page-content";
+import { Loading } from "./ui/atoms/loading";
+import { Advertising } from "./advertising";
+import { HydrationData } from "../../libs/types/hydration";
+import { TopPlacement } from "./ui/organisms/placement";
+import { Blog } from "./blog";
+import { Newsletter } from "./newsletter";
+import { Curriculum } from "./curriculum";
+import { useGA } from "./ga-context";
 
 const AllFlaws = React.lazy(() => import("./flaws"));
 const Translations = React.lazy(() => import("./translations"));
 const WritersHomepage = React.lazy(() => import("./writers-homepage"));
 const Sitemap = React.lazy(() => import("./sitemap"));
+const Playground = React.lazy(() => import("./playground"));
+const Observatory = React.lazy(() => import("./observatory"));
 
 function Layout({ pageType, children }) {
   const { pathname } = useLocation();
   const [category, setCategory] = React.useState<string | null>(
-    docCategory({ pathname })
+    getCategoryByPathname(pathname)
   );
 
-  const isServer = useIsServer();
-
   React.useEffect(() => {
-    setCategory(docCategory({ pathname }));
+    setCategory(getCategoryByPathname(pathname));
   }, [pathname]);
 
   return (
     <>
       <A11yNav />
-      {!isServer && hasActiveBanners && <Banner />}
-      <div className={`page-wrapper  ${category || ""} ${pageType}`}>
-        {pageType !== "document-page" && <TopNavigation />}
+      <div
+        className={`page-wrapper  ${
+          category ? `category-${category}` : ""
+        } ${pageType}`}
+      >
+        <TopPlacement />
+        {!["document-page", "curriculum", "observatory"].includes(pageType) && (
+          <div className="sticky-header-container without-actions">
+            <TopNavigation />
+          </div>
+        )}
         {children}
       </div>
       <Footer />
@@ -55,41 +75,54 @@ function Layout({ pageType, children }) {
   );
 }
 
+function LoadingFallback({ message }: { message?: string }) {
+  return (
+    <StandardLayout>
+      <MainContentContainer standalone={true}>
+        {/* This extra minHeight is just so that the footer doesn't flicker
+        in and out as the fallback appears. */}
+        <Loading minHeight={800} message={message || "Loading…"} />
+      </MainContentContainer>
+    </StandardLayout>
+  );
+}
+
+function LazyStandardLayout(props: {
+  pageType?: string;
+  extraClasses?: string;
+  children: React.ReactNode;
+}) {
+  const isServer = useIsServer();
+  return isServer ? (
+    <LoadingFallback />
+  ) : (
+    <React.Suspense fallback={<LoadingFallback />}>
+      <StandardLayout {...props}></StandardLayout>
+    </React.Suspense>
+  );
+}
+
 function StandardLayout({
+  pageType,
   extraClasses,
   children,
 }: {
+  pageType?: string;
   extraClasses?: string;
   children: React.ReactNode;
 }) {
   return (
-    <Layout pageType={`standard-page ${extraClasses || ""}`}>{children}</Layout>
+    <Layout pageType={pageType || `standard-page ${extraClasses || ""}`}>
+      {children}
+    </Layout>
   );
 }
 function DocumentLayout({ children }) {
   return <Layout pageType="document-page">{children}</Layout>;
 }
 
-/** This component exists so you can dynamically change which sub-component to
- * render depending on the conditions. In particular, we need to be able to
- * render the <PageNotFound> component, in server-side rendering, if told to do
- * so. But if the client then changes the location (by clicking a <Link>
- * or a react-router navigate() call) we need to ignore the fact that it was
- * originally not found. Perhaps, this new location that the client is
- * requesting is going to work.
- */
 function PageOrPageNotFound({ pageNotFound, children }) {
-  // It's true by default if the SSR rendering says so.
-  const [notFound, setNotFound] = React.useState<boolean>(!!pageNotFound);
-  const { pathname } = useLocation();
-  const initialPathname = React.useRef(pathname);
-  React.useEffect(() => {
-    if (initialPathname.current && initialPathname.current !== pathname) {
-      setNotFound(false);
-    }
-  }, [pathname]);
-
-  return notFound ? (
+  return pageNotFound ? (
     <StandardLayout>
       <PageNotFound />
     </StandardLayout>
@@ -98,19 +131,19 @@ function PageOrPageNotFound({ pageNotFound, children }) {
   );
 }
 
-function LoadingFallback({ message }: { message?: string }) {
-  return (
-    <StandardLayout>
-      <PageContentContainer>
-        {/* This extra minHeight is just so that the footer doesn't flicker
-          in and out as the fallback appears. */}
-        <Loading minHeight={800} message={message || "Loading…"} />
-      </PageContentContainer>
-    </StandardLayout>
+export function App(appProps: HydrationData) {
+  const { pathname } = useLocation();
+  const initialPathname = React.useRef(pathname);
+  const pageNotFound = React.useMemo(
+    () =>
+      (appProps.pageNotFound || false) && initialPathname.current === pathname,
+    [appProps.pageNotFound, pathname]
   );
-}
 
-export function App(appProps) {
+  usePing();
+  useGleanPage(pageNotFound, appProps.doc);
+  useScrollDepthMeasurement();
+
   const localeMatch = useMatch("/:locale/*");
 
   useEffect(() => {
@@ -121,19 +154,19 @@ export function App(appProps) {
 
   const isServer = useIsServer();
 
-  // When preparing a build for use in the NPM package, CRUD_MODE is always true.
+  // When preparing a build for use in the NPM package, WRITER_MODE is always true.
   // But if the App is loaded from the code that builds the SPAs, then `isServer`
-  // is true. So you have to have `isServer && CRUD_MODE` at the same time.
+  // is true. So you have to have `isServer && WRITER_MODE` at the same time.
   const homePage =
-    !isServer && CRUD_MODE ? (
-      <Layout pageType="standard-page">
+    !isServer && WRITER_MODE ? (
+      <LazyStandardLayout>
         <WritersHomepage />
-      </Layout>
+      </LazyStandardLayout>
     ) : (
-      <PageOrPageNotFound pageNotFound={appProps.pageNotFound}>
-        <Layout pageType="standard-page">
+      <PageOrPageNotFound pageNotFound={pageNotFound}>
+        <StandardLayout>
           <Homepage {...appProps} />
-        </Layout>
+        </StandardLayout>
       </PageOrPageNotFound>
     );
 
@@ -142,30 +175,49 @@ export function App(appProps) {
       {/*
         Note, this can only happen in local development.
         In production, all traffic at `/` is redirected to at least
-        having a locale. So it'll be `/en-US` (for example) by the
+        having a locale. So it'll be `/en-US/` (for example) by the
         time it hits any React code.
        */}
-      <Route path="/" element={homePage} />
+      <Route
+        path="/"
+        element={WRITER_MODE ? homePage : <Navigate to="/en-US/" />}
+      />
+      <Route
+        path="/en-US/curriculum/*"
+        element={
+          <Layout pageType="curriculum">
+            <Curriculum {...appProps} />
+          </Layout>
+        }
+      />
+      <Route
+        path="/en-US/blog/*"
+        element={
+          <StandardLayout extraClasses="blog">
+            <Blog {...appProps} />
+          </StandardLayout>
+        }
+      />
       <Route
         path="/:locale/*"
         element={
           <Routes>
-            {CRUD_MODE && (
+            {WRITER_MODE && (
               <>
                 <Route
                   path="/_flaws"
                   element={
-                    <StandardLayout>
+                    <LazyStandardLayout>
                       <AllFlaws />
-                    </StandardLayout>
+                    </LazyStandardLayout>
                   }
                 />
                 <Route
                   path="/_translations/*"
                   element={
-                    <StandardLayout>
+                    <LazyStandardLayout>
                       <Translations />
-                    </StandardLayout>
+                    </LazyStandardLayout>
                   }
                 />
 
@@ -177,7 +229,7 @@ export function App(appProps) {
                 to simulate it.
                  */}
                 <Route
-                  path="/_404/*"
+                  path="/404/*"
                   element={
                     <StandardLayout>
                       <PageNotFound />
@@ -188,7 +240,7 @@ export function App(appProps) {
                 {/*
                 This route exclusively exists for development on the <Homepage>
                 component itself.
-                Normally, you get to the home page by NOT being in CRUD_MODE, but
+                Normally, you get to the home page by NOT being in WRITER_MODE, but
                 if you want to use the hot-reloading app, it might be convenient
                 to be able to run it locally
                  */}
@@ -204,14 +256,30 @@ export function App(appProps) {
                 <Route
                   path="/_sitemap/*"
                   element={
-                    <StandardLayout>
+                    <LazyStandardLayout>
                       <Sitemap />
-                    </StandardLayout>
+                    </LazyStandardLayout>
                   }
                 />
               </>
             )}
             <Route path="/" element={homePage} />
+            <Route
+              path="/play"
+              element={
+                <LazyStandardLayout>
+                  <Playground />
+                </LazyStandardLayout>
+              }
+            />
+            <Route
+              path="observatory/*"
+              element={
+                <LazyStandardLayout pageType="observatory">
+                  <Observatory {...appProps} />
+                </LazyStandardLayout>
+              }
+            />
             <Route
               path="/search"
               element={
@@ -230,12 +298,12 @@ export function App(appProps) {
                 }
               />
             )}
-            {PLUS_IS_ENABLED && (
+            {PLACEMENT_ENABLED && (
               <Route
-                path="/offline-settings"
+                path="/advertising/*"
                 element={
                   <StandardLayout>
-                    <OfflineSettings {...appProps} />
+                    <Advertising {...appProps} />
                   </StandardLayout>
                 }
               />
@@ -243,7 +311,7 @@ export function App(appProps) {
             <Route
               path="/docs/*"
               element={
-                <PageOrPageNotFound pageNotFound={appProps.pageNotFound}>
+                <PageOrPageNotFound pageNotFound={pageNotFound}>
                   <DocumentLayout>
                     <Document {...appProps} />
                   </DocumentLayout>
@@ -254,7 +322,7 @@ export function App(appProps) {
               path="/about/*"
               element={
                 <StandardLayout>
-                  <About />
+                  <About {...appProps} />
                 </StandardLayout>
               }
             />
@@ -262,7 +330,7 @@ export function App(appProps) {
               path="/community/*"
               element={
                 <StandardLayout>
-                  <Contribute />
+                  <Community {...appProps} />
                 </StandardLayout>
               }
             />
@@ -271,6 +339,14 @@ export function App(appProps) {
               element={
                 <StandardLayout>
                   <ContributorSpotlight {...appProps} />
+                </StandardLayout>
+              }
+            />
+            <Route
+              path="/newsletter"
+              element={
+                <StandardLayout>
+                  <Newsletter />
                 </StandardLayout>
               }
             />
@@ -287,13 +363,48 @@ export function App(appProps) {
       />
     </Routes>
   );
-  /* This might look a bit odd but it's actually quite handy.
-   * This way, when rendering client-side, we wrap all the routes in
-   * <React.Suspense> but in server-side rendering that goes away.
-   */
-  return isServer ? (
-    routes
-  ) : (
-    <React.Suspense fallback={<LoadingFallback />}>{routes}</React.Suspense>
-  );
+  return routes;
+}
+
+function useScrollDepthMeasurement(thresholds = [25, 50, 75]) {
+  const timeoutID = React.useRef<number | null>();
+  const [currentDepth, setScrollDepth] = React.useState(0);
+  const { gtag } = useGA();
+
+  useEffect(() => {
+    const listener = () => {
+      if (timeoutID.current) {
+        window.clearTimeout(timeoutID.current);
+      }
+      timeoutID.current = window.setTimeout(() => {
+        const { scrollHeight } = document.documentElement;
+        const { innerHeight, scrollY } = window;
+        const scrollPosition = innerHeight + scrollY;
+        const depth = (100 * scrollPosition) / scrollHeight;
+
+        const matchingThresholds = thresholds.filter(
+          (threshold) => currentDepth < threshold && threshold <= depth
+        );
+
+        matchingThresholds.forEach((threshold) => {
+          gtag("event", "scroll", {
+            percent_scrolled: String(threshold),
+          });
+        });
+
+        const lastThreshold = matchingThresholds.at(-1);
+        if (lastThreshold) {
+          setScrollDepth(lastThreshold);
+        }
+
+        timeoutID.current = null;
+      }, 100);
+    };
+
+    window.addEventListener("scroll", listener);
+
+    return () => window.removeEventListener("scroll", listener);
+  });
+
+  return currentDepth;
 }

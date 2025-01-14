@@ -1,22 +1,15 @@
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import useSWR from "swr";
-import { CRUD_MODE } from "../../constants";
-import { HydrationData } from "../../types/hydration";
+
+import { DEV_MODE } from "../../env";
+import { HydrationData } from "../../../../libs/types/hydration";
+import { NewsItem } from "../../../../libs/types/document";
+import { HOMEPAGE, HOMEPAGE_ITEMS } from "../../telemetry/constants";
 
 import "./index.scss";
 
 dayjs.extend(relativeTime);
-
-interface NewsItem {
-  url: string;
-  title: string;
-  source: {
-    name: string;
-    url: string;
-  };
-  published_at: string;
-}
 
 export function LatestNews(props: HydrationData<any>) {
   const fallbackData = props.hyData ? props : undefined;
@@ -33,7 +26,7 @@ export function LatestNews(props: HydrationData<any>) {
     },
     {
       fallbackData,
-      revalidateOnFocus: CRUD_MODE,
+      revalidateOnFocus: DEV_MODE,
       revalidateOnMount: !fallbackData,
     }
   );
@@ -44,13 +37,15 @@ export function LatestNews(props: HydrationData<any>) {
     return null;
   }
 
-  function NewsItemTitle({ newsItem }: { newsItem: NewsItem }) {
+  function NewsItemTitle({ newsItem, ...attributes }: { newsItem: NewsItem }) {
     const ageInDays = dayjs().diff(newsItem.published_at, "day");
     const isNew = ageInDays < 7;
 
     return (
       <>
-        <a href={newsItem.url}>{newsItem.title}</a>
+        <a href={newsItem.url} {...attributes}>
+          {newsItem.title}
+        </a>
         {isNew && (
           <>
             {" "}
@@ -61,11 +56,11 @@ export function LatestNews(props: HydrationData<any>) {
     );
   }
 
-  function NewsItemSource({ newsItem }: { newsItem: NewsItem }) {
+  function NewsItemSource({ newsItem, ...attributes }: { newsItem: NewsItem }) {
     const { source } = newsItem;
 
     return (
-      <a className="news-source" href={source.url}>
+      <a className="news-source" href={source.url} {...attributes}>
         {source.name}
       </a>
     );
@@ -81,17 +76,23 @@ export function LatestNews(props: HydrationData<any>) {
     <section className="latest-news">
       <h2>Latest news</h2>
       <ul className="news-list">
-        {newsItems.map((newsItem) => (
+        {newsItems.map((newsItem, index) => (
           <li className="news-item" key={newsItem.url}>
             <p className="news-title">
               <span>
-                <NewsItemTitle newsItem={newsItem} />
+                <NewsItemTitle
+                  newsItem={newsItem}
+                  data-glean={`${HOMEPAGE}: ${HOMEPAGE_ITEMS.NEWS} ${index + 1}`}
+                />
               </span>
               <span>
-                <NewsItemSource newsItem={newsItem} />
+                <NewsItemSource
+                  newsItem={newsItem}
+                  data-glean={`${HOMEPAGE}: ${HOMEPAGE_ITEMS.NEWS_SOURCE} ${index + 1}`}
+                />
               </span>
             </p>
-            <span className="news-date">
+            <span className="news-date" suppressHydrationWarning>
               <NewsItemDate newsItem={newsItem} />
             </span>
           </li>

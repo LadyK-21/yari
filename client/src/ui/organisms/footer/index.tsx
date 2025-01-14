@@ -1,11 +1,10 @@
-import * as React from "react";
 import { useLocale } from "../../../hooks";
 import "./index.scss";
 import { useLocation } from "react-router-dom";
 
 import { ReactComponent as MDNLogo } from "../../../assets/mdn-footer-logo.svg";
 import { ReactComponent as MozLogo } from "../../../assets/moz-logo.svg";
-import { PLUS_IS_ENABLED } from "../../../constants";
+import { PLUS_IS_ENABLED } from "../../../env";
 const DARK_NAV_ROUTES = [/\/plus\/?$/i];
 
 export function Footer() {
@@ -25,22 +24,40 @@ export function Footer() {
           <ul className="social-icons">
             <li>
               <a
-                className="icon icon-twitter"
-                href="https://twitter.com/mozdevnet"
+                href="https://mastodon.social/@mdn"
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="me noopener noreferrer"
               >
-                <span className="visually-hidden">MDN on Twitter</span>
+                <span className="icon icon-mastodon"></span>
+                <span className="visually-hidden">MDN on Mastodon</span>
               </a>
             </li>
             <li>
               <a
-                className="icon icon-github-mark-small"
+                href="https://twitter.com/mozdevnet"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span className="icon icon-twitter-x"></span>
+                <span className="visually-hidden">
+                  MDN on X (formerly Twitter)
+                </span>
+              </a>
+            </li>
+            <li>
+              <a
                 href="https://github.com/mdn/"
                 target="_blank"
                 rel="noopener noreferrer"
               >
+                <span className="icon icon-github-mark-small"></span>
                 <span className="visually-hidden">MDN on GitHub</span>
+              </a>
+            </li>
+            <li>
+              <a href="/en-US/blog/rss.xml" target="_blank">
+                <span className="icon icon-feed"></span>
+                <span className="visually-hidden">MDN Blog RSS Feed</span>
               </a>
             </li>
           </ul>
@@ -53,22 +70,19 @@ export function Footer() {
               <a href={`/en-US/about`}>About</a>
             </li>
             <li className="footer-nav-item">
-              <a
-                href="https://hacks.mozilla.org/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Hacks Blog
-              </a>
+              <a href={`/en-US/blog/`}>Blog</a>
             </li>
             <li className="footer-nav-item">
               <a
-                href="https://www.mozilla.org/en-US/careers/listings/?team=Marketing"
+                href="https://www.mozilla.org/en-US/careers/listings/?team=ProdOps"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 Careers
               </a>
+            </li>
+            <li className="footer-nav-item">
+              <a href={`/en-US/advertising`}>Advertise with us</a>
             </li>
           </ul>
         </div>
@@ -89,17 +103,9 @@ export function Footer() {
             <li className="footer-nav-item">
               <a
                 className="footer-nav-link"
-                href={`/${locale}/docs/MDN/Contribute/Feedback#documentation_issues`}
+                href={`/${locale}/docs/MDN/Community/Issues`}
               >
-                Report a page issue
-              </a>
-            </li>
-            <li className="footer-nav-item">
-              <a
-                className="footer-nav-link"
-                href={`/${locale}/docs/MDN/Contribute/Feedback#site_issues`}
-              >
-                Report a site issue
+                Report an issue
               </a>
             </li>
           </ul>
@@ -126,7 +132,7 @@ export function Footer() {
             <li className="footer-nav-item">
               <a
                 className="footer-nav-link"
-                href="https://wiki.mozilla.org/Matrix"
+                href="/discord"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -156,6 +162,15 @@ export function Footer() {
                 </a>
               </li>
             )}
+            <li className="footer-nav-item">
+              <a
+                href="https://hacks.mozilla.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Hacks Blog
+              </a>
+            </li>
           </ul>
         </div>
 
@@ -233,7 +248,9 @@ export function Footer() {
             <br />
             Portions of this content are ©1998–{new Date().getFullYear()} by
             individual mozilla.org contributors. Content available under{" "}
-            <a href="/docs/MDN/About#Copyrights_and_licenses">
+            <a
+              href={`/${locale}/docs/MDN/Writing_guidelines/Attrib_copyright_license`}
+            >
               a Creative Commons license
             </a>
             .

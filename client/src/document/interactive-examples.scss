@@ -2,16 +2,16 @@
 
 .interactive {
   background-color: var(--background-secondary);
-  border: 1px solid var(--border-primary);
+  border: none;
   border-radius: var(--elem-radius);
   color: var(--text-primary);
-  margin: 1rem 0;
-  padding: 0;
-  width: 100%;
 
   // Since heights are now responsive, these classes are added
   // in the EmbedInteractiveExample.ejs macro.
   height: 675px;
+  margin: 1rem 0;
+  padding: 0;
+  width: 100%;
 
   &.is-js-height,
   &.is-taller-height,
@@ -22,18 +22,23 @@
   &.is-js-height {
     height: 513px;
   }
+
   &.is-shorter-height {
     height: 433px;
   }
+
   &.is-taller-height {
     height: 725px;
   }
+
   &.is-tabbed-shorter-height {
     height: 487px;
   }
+
   &.is-tabbed-standard-height {
     height: 548px;
   }
+
   &.is-tabbed-taller-height {
     height: 774px;
   }
@@ -49,26 +54,30 @@
 // wide in the mobile layout to the time it switches
 // to two columns. Then, from the time the iframe
 // is 590px wide in the two-column layout on up.
-@media screen and (min-width: 688px) and (max-width: $screen-md - 1),
-  screen and (min-width: 1008px) {
+@media (min-width: 688px) and (max-width: $screen-md - 1), (min-width: 1008px) {
   .interactive {
     height: 375px;
 
     &.is-js-height {
       height: 444px;
     }
+
     &.is-shorter-height {
       height: 364px;
     }
+
     &.is-taller-height {
       height: 654px;
     }
+
     &.is-tabbed-shorter-height {
       height: 351px;
     }
+
     &.is-tabbed-standard-height {
       height: 421px;
     }
+
     &.is-tabbed-taller-height {
       height: 631px;
     }

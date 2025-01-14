@@ -6,6 +6,8 @@ import { App } from "./app";
 import { GAProvider } from "./ga-context";
 import { UserDataProvider } from "./user-context";
 import { UIProvider } from "./ui-context";
+import { GleanProvider } from "./telemetry/glean-context";
+import { PlacementProvider } from "./placement-context";
 
 // import * as serviceWorker from './serviceWorker';
 
@@ -24,15 +26,19 @@ const appData = hydrationElement
 
 const app = (
   <React.StrictMode>
-    <GAProvider>
-      <UserDataProvider>
-        <UIProvider>
-          <Router>
-            <App {...appData} />
-          </Router>
-        </UIProvider>
-      </UserDataProvider>
-    </GAProvider>
+    <GleanProvider>
+      <GAProvider>
+        <UserDataProvider>
+          <UIProvider>
+            <Router>
+              <PlacementProvider>
+                <App {...appData} />
+              </PlacementProvider>
+            </Router>
+          </UIProvider>
+        </UserDataProvider>
+      </GAProvider>
+    </GleanProvider>
   </React.StrictMode>
 );
 
@@ -46,5 +52,5 @@ if (container.firstElementChild) {
 
 // Initialize mdnWorker if there's a service worker already.
 if (navigator?.serviceWorker?.controller && !window.mdnWorker) {
-  import("./offline-settings/mdn-worker");
+  import("./settings/mdn-worker").then(({ getMDNWorker }) => getMDNWorker());
 }

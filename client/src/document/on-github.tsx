@@ -1,60 +1,20 @@
-import { Doc } from "./types";
+import { Doc } from "../../../libs/types/document";
 
 export function OnGitHubLink({ doc }: { doc: Doc }) {
   return (
     <div id="on-github" className="on-github">
-      <h3>Found a problem with this page?</h3>
-      <ul>
-        <li>
-          <EditOnGitHubLink doc={doc} />
-        </li>
-        <li>
-          <SourceOnGitHubLink doc={doc} />
-        </li>
-        <li>
-          <NewIssueOnGitHubLink doc={doc} />
-        </li>
-        <li>
-          Want to fix the problem yourself? See{" "}
-          <a
-            href="https://github.com/mdn/content/blob/main/README.md"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            our Contribution guide
-          </a>
-          .
-        </li>
-      </ul>
+      <SourceOnGitHubLink doc={doc}>
+        {doc.locale !== "de"
+          ? "View this page on GitHub"
+          : "Übersetzung auf GitHub anzeigen"}
+      </SourceOnGitHubLink>{" "}
+      •{" "}
+      <NewIssueOnGitHubLink doc={doc}>
+        {doc.locale !== "de"
+          ? "Report a problem with this content"
+          : "Fehler mit dieser Übersetzung melden"}
+      </NewIssueOnGitHubLink>
     </div>
-  );
-}
-
-function SourceOnGitHubLink({ doc }: { doc: Doc }) {
-  const { github_url, folder } = doc.source;
-  return (
-    <a
-      href={`${github_url}?plain=1`}
-      title={`Folder: ${folder} (Opens in a new tab)`}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Source on <b>GitHub</b>
-    </a>
-  );
-}
-
-function EditOnGitHubLink({ doc }: { doc: Doc }) {
-  const { github_url } = doc.source;
-  return (
-    <a
-      href={github_url.replace("/blob/", "/edit/")}
-      title={`You're going to need to sign in to GitHub first (Opens in a new tab)`}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Edit on <b>GitHub</b>
-    </a>
   );
 }
 
@@ -72,26 +32,20 @@ const METADATA_TEMPLATE = `
 </details>
 `;
 
-const NEW_ISSUE_TEMPLATE = `
-MDN URL: https://developer.mozilla.org$PATHNAME
-
-#### What information was incorrect, unhelpful, or incomplete?
-
-
-#### Specific section or headline?
-
-
-#### What did you expect to see?
-
-
-#### Did you test this? If so, how?
-
-
-${METADATA_TEMPLATE}
-  `.trim();
-
 function fillMetadata(string, doc) {
-  const { folder, github_url, last_commit_url } = doc.source;
+  let { folder, github_url, last_commit_url } = doc.source;
+
+  if (doc.locale === "de") {
+    github_url = github_url.replace(
+      "/translated-content/",
+      "/translated-content-de/"
+    );
+    last_commit_url = last_commit_url.replace(
+      "/translated-content/",
+      "/translated-content-de/"
+    );
+  }
+
   return string
     .replace(/\$PATHNAME/g, doc.mdn_url)
     .replace(/\$FOLDER/g, folder)
@@ -104,40 +58,73 @@ function fillMetadata(string, doc) {
     .trim();
 }
 
-function NewIssueOnGitHubLink({ doc }: { doc: Doc }) {
+function NewIssueOnGitHubLink({
+  doc,
+  children,
+}: {
+  doc: Doc;
+  children: React.ReactNode;
+}) {
   const { locale } = doc;
   const url = new URL("https://github.com/");
   const sp = new URLSearchParams();
 
-  if (locale !== "en-US") {
-    url.pathname = "/mdn/translated-content/issues/new";
+  url.pathname =
+    locale !== "en-US"
+      ? "/mdn/translated-content/issues/new"
+      : "/mdn/content/issues/new";
 
-    const body = fillMetadata(NEW_ISSUE_TEMPLATE, doc);
-    sp.set("body", body);
-
-    const maxLength = 50;
-    const titleShort =
-      doc.title.length > maxLength
-        ? `${doc.title.slice(0, maxLength)}…`
-        : doc.title;
-    sp.set("title", `Issue with "${titleShort}": (short summary here please)`);
-  } else {
-    url.pathname = "/mdn/content/issues/new";
-    sp.set("template", "page-report.yml");
-    sp.set("mdn-url", `https://developer.mozilla.org${doc.mdn_url}`);
-    sp.set("metadata", fillMetadata(METADATA_TEMPLATE, doc));
+  if (locale === "de") {
+    url.pathname = "/mdn/translated-content-de/issues/new";
   }
+
+  sp.set(
+    "template",
+    locale !== "en-US"
+      ? `page-report-${locale.toLowerCase()}.yml`
+      : "page-report.yml"
+  );
+  sp.set("mdn-url", `https://developer.mozilla.org${doc.mdn_url}`);
+  sp.set("metadata", fillMetadata(METADATA_TEMPLATE, doc));
 
   url.search = sp.toString();
 
   return (
     <a
       href={url.href}
-      title="This will take you to GitHub to file a new issue"
+      title="This will take you to GitHub to file a new issue."
       target="_blank"
       rel="noopener noreferrer"
     >
-      Report a problem with this content on <b>GitHub</b>
+      {children}
+    </a>
+  );
+}
+
+function SourceOnGitHubLink({
+  doc,
+  children,
+}: {
+  doc: Doc;
+  children: React.ReactNode;
+}) {
+  let { github_url, folder } = doc.source;
+
+  if (doc.locale === "de") {
+    github_url = github_url.replace(
+      "/translated-content/",
+      "/translated-content-de/"
+    );
+  }
+
+  return (
+    <a
+      href={`${github_url}?plain=1`}
+      title={`Folder: ${folder} (Opens in a new tab)`}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {children}
     </a>
   );
 }

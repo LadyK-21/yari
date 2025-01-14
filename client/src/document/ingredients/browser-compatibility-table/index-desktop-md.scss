@@ -1,5 +1,7 @@
-@media screen and (min-width: $screen-md) {
-  .table-scroll {
+@use "../../../ui/vars" as *;
+
+@media (min-width: $screen-md) {
+  .table-container {
     width: calc(100% + 6rem);
   }
 

@@ -4,35 +4,42 @@ import { Breadcrumbs } from "../../molecules/breadcrumbs";
 import { ArticleActions } from "../article-actions";
 import { Button } from "../../atoms/button";
 
-import { Doc } from "../../../document/types";
+import { Doc, DocParent } from "../../../../../libs/types/document";
 
 import { useUIStatus } from "../../../ui-context";
 
 import "./index.scss";
 
-export const ArticleActionsContainer = ({ doc }: { doc: Doc }) => {
-  const [showArticleActionsMenu, setShowArticleActionsMenu] =
-    React.useState(false);
+export const ArticleActionsContainer = ({
+  doc,
+  parents = doc?.parents,
+  withSidebar = true,
+}: {
+  doc?: Doc;
+  parents?: DocParent[];
+  withSidebar?: boolean;
+}) => {
   const { isSidebarOpen, setIsSidebarOpen } = useUIStatus();
 
   return (
     <div className="article-actions-container">
       <div className="container">
-        <Button
-          extraClasses="sidebar-button"
-          icon="sidebar"
-          type="action"
-          onClickHandler={() => setIsSidebarOpen(!isSidebarOpen)}
-        />
+        {withSidebar && (
+          <Button
+            extraClasses="sidebar-button"
+            icon="sidebar"
+            type="action"
+            aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            aria-expanded={isSidebarOpen}
+            aria-controls="sidebar-quicklinks"
+            onClickHandler={() => setIsSidebarOpen(!isSidebarOpen)}
+          />
+        )}
 
         {/* if we have breadcrumbs for the current page, continue rendering the section */}
-        {doc.parents && <Breadcrumbs parents={doc.parents} />}
+        {parents && <Breadcrumbs parents={parents} />}
 
-        <ArticleActions
-          doc={doc}
-          showArticleActionsMenu={showArticleActionsMenu}
-          setShowArticleActionsMenu={setShowArticleActionsMenu}
-        />
+        {doc && <ArticleActions doc={doc} />}
       </div>
     </div>
   );

@@ -1,10 +1,12 @@
-@media screen and (min-width: $screen-xl) {
-  .table-scroll {
-    width: 100%;
+@use "../../../ui/vars" as *;
+
+@media (min-width: $screen-xl) {
+  .table-container {
     margin: 0;
+    width: 100%;
   }
 
-  .table-scroll-inner {
+  .table-container-inner {
     padding: 0;
   }
 }

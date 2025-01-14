@@ -10,19 +10,13 @@ from .constants import (
     DEFAULT_BUCKET_NAME,
     DEFAULT_BUCKET_PREFIX,
     DEFAULT_CACHE_CONTROL,
-    DEFAULT_DISTRIBUTION_ID,
     DEFAULT_NO_PROGRESSBAR,
     DEFAULT_REPO,
     DEFAULT_GITHUB_TOKEN,
     ELASTICSEARCH_URL,
 )
-from .update_lambda_functions import (
-    update_all as update_lambdas,
-    deploy as deploy_lambdas,
-)
 from .upload import upload_content
 from .utils import log
-from .whatsdeployed import dump as dump_whatsdeployed
 from .analyze_pr import analyze_pr
 from . import search
 
@@ -83,56 +77,6 @@ def cli(ctx, **kwargs):
 
 @cli.command()
 @click.option(
-    "--distribution",
-    help="Id of the CloudFront distribution",
-    default=DEFAULT_DISTRIBUTION_ID,
-    show_default=True,
-)
-@click.option(
-    "--force",
-    default=False,
-    help="Overwrite Lambda function, even if the hash hasn't changed.",
-    show_default=True,
-    is_flag=True,
-)
-@click.argument(
-    "directory",
-    type=click.Path(),
-    callback=validate_directory,
-    default="aws-lambda",
-)
-@click.pass_context
-def update_lambda_functions(ctx, directory, distribution, force):
-    log.info(f"Deployer ({__version__})", bold=True)
-    dry_run = ctx.obj["dry_run"]
-
-    updated_functions = update_lambdas(directory, dry_run=dry_run, force=force)
-    deploy_lambdas(updated_functions, distribution, dry_run=dry_run)
-
-
-@cli.command(
-    help="Create a whatsdeployed.json file "
-    "by asking git for the date and commit hash of HEAD."
-)
-@click.option(
-    "--output",
-    type=click.Path(),
-    help="Name of JSON file to create",
-    default="whatsdeployed.json",
-)
-@click.argument(
-    "directory",
-    type=click.Path(),
-    callback=validate_directory,
-    default=".",
-)
-@click.pass_context
-def whatsdeployed(ctx, directory: Path, output: str):
-    dump_whatsdeployed(directory, Path(output), dry_run=ctx.obj["dry_run"])
-
-
-@cli.command()
-@click.option(
     "--bucket",
     help="Name of the S3 bucket",
     default=DEFAULT_BUCKET_NAME,
@@ -173,13 +117,6 @@ def whatsdeployed(ctx, directory: Path, output: str):
     is_flag=True,
 )
 @click.option(
-    "--no-redirects",
-    help="Don't upload redirects from the content roots",
-    default=False,
-    show_default=True,
-    is_flag=True,
-)
-@click.option(
     "--prune",
     help="Delete keys that were not uploaded this time (including those that didn't "
     "need to be uploaded)",
@@ -202,10 +139,6 @@ def upload(ctx, directory: Path, **kwargs):
         content_roots.append(kwargs["content_root"])
     if kwargs["content_translated_root"]:
         content_roots.append(kwargs["content_translated_root"])
-    if not kwargs["no_redirects"] and not content_roots:
-        raise Exception(
-            "if you don't use --no-redirects you have to have at least one content root"
-        )
 
     ctx.obj.update(kwargs)
     upload_content(directory, content_roots, ctx.obj)

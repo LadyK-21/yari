@@ -3,8 +3,8 @@
 
 @mixin not-inline-submenu {
   background-color: var(--background-secondary);
-  border-radius: var(--elem-radius);
   border: 1px solid var(--border-primary);
+  border-radius: var(--elem-radius);
   box-shadow: var(--shadow-02);
   max-width: 25rem;
   padding: 0.5rem;
@@ -47,7 +47,7 @@
     width: 100%;
   }
 
-  a,
+  li > a,
   .submenu-item {
     align-items: center;
     border: 1px solid transparent;
@@ -81,13 +81,13 @@
   }
 
   &.inline-submenu-lg {
-    @media screen and (min-width: $screen-lg) {
+    @media (min-width: $screen-lg) {
       @include not-inline-submenu();
     }
   }
 
   &:not(.inline-submenu-lg) {
-    @media screen and (min-width: $screen-md) {
+    @media (min-width: $screen-md) {
       @include not-inline-submenu();
     }
   }
@@ -105,7 +105,7 @@
     background: none;
   }
 
-  @media screen and (min-width: $screen-md) {
+  @media (min-width: $screen-md) {
     border-bottom: 1px solid var(--border-primary);
   }
 }
@@ -113,16 +113,16 @@
 .submenu-icon {
   background-color: var(--icon-primary);
   height: 2rem;
+  margin-right: 0.75rem;
   position: relative;
   width: 0.2rem;
-  margin-right: 0.75rem;
 }
 
 .submenu-item-heading,
 .submenu-item {
   font-size: var(--type-smaller-font-size);
 
-  @media screen and (min-width: $screen-md) {
+  @media (min-width: $screen-md) {
     // If there is sub-text associated with this heading, make it bold.
     &:not(:only-child) {
       font-weight: var(--font-body-strong-weight);
@@ -133,10 +133,10 @@
 .submenu-item-description {
   display: none;
 
-  @media screen and (min-width: $screen-md) {
+  @media (min-width: $screen-md) {
     display: block;
-    margin: 0.25rem 0 0 0;
     font-size: var(--type-tiny-font-size);
+    margin: 0.25rem 0 0;
   }
 }
 
@@ -145,14 +145,14 @@
 }
 
 .submenu-item-dot ~ .submenu-content-container > .submenu-item-heading::after {
-  content: "";
-  display: inline-block;
+  background: var(--text-primary-blue);
   border: 1px solid var(--background-primary);
   border-radius: 2rem;
-  background: var(--text-primary-blue);
-  width: 0.5rem;
+  content: "";
+  display: inline-block;
   height: 0.5rem;
   margin-left: 0.5rem;
+  width: 0.5rem;
 }
 
 .active-menu-item {

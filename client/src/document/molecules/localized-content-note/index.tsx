@@ -8,24 +8,43 @@ export function LocalizedContentNote({
   locale: string;
 }) {
   const activeLocaleNoteContent = {
+    de: {
+      linkText: (
+        <>
+          <strong>Experiment</strong>: Dieser Inhalt wurde automatisch aus dem
+          Englischen übersetzt, und kann Fehler enthalten.
+        </>
+      ),
+      url: "https://github.com/orgs/mdn/discussions/741",
+    },
     "en-US": {
       linkText:
         "This page was translated from English by the community. Learn more and join the MDN Web Docs community.",
-      url: "/en-US/docs/MDN/Contribute/Localize#active_locales",
+      url: "/en-US/docs/MDN/Community/Contributing/Translated_content#active_locales",
+    },
+    es: {
+      linkText:
+        "Esta página ha sido traducida del inglés por la comunidad. Aprende más y únete a la comunidad de MDN Web Docs.",
+      url: "/es/docs/MDN/Community/Contributing/Translated_content#locales_activos",
     },
     fr: {
       linkText:
         "Cette page a été traduite à partir de l'anglais par la communauté. Vous pouvez également contribuer en rejoignant la communauté francophone sur MDN Web Docs.",
-      url: "/fr/docs/MDN/Contribute/Localize#langues_actives",
+      url: "/fr/docs/MDN/Community/Contributing/Translated_content#langues_actives",
     },
     ja: {
       linkText:
         "このページはコミュニティーの尽力で英語から翻訳されました。MDN Web Docs コミュニティーについてもっと知り、仲間になるにはこちらから。",
-      url: "/ja/docs/MDN/Contribute/Localize#active_locales",
+      url: "/ja/docs/MDN/Community/Contributing/Translated_content#アクティブなロケール",
     },
     ko: {
       linkText:
         "이 페이지는 영어로부터 커뮤니티에 의하여 번역되었습니다. MDN Web Docs에서 한국 커뮤니티에 가입하여 자세히 알아보세요.",
+    },
+    "pt-BR": {
+      linkText:
+        "Esta página foi traduzida do inglês pela comunidade. Saiba mais e junte-se à comunidade MDN Web Docs.",
+      url: "/pt-BR/docs/MDN/Community/Contributing/Translated_content#locais_ativos",
     },
     ru: {
       linkText:
@@ -34,37 +53,35 @@ export function LocalizedContentNote({
     "zh-CN": {
       linkText:
         "此页面由社区从英文翻译而来。了解更多并加入 MDN Web Docs 社区。",
-      url: "/zh-CN/docs/MDN/Contribute/Localize#活跃语言",
+      url: "/zh-CN/docs/MDN/Community/Contributing/Translated_content#活跃语言",
+    },
+    "zh-TW": {
+      linkText:
+        "此頁面由社群從英文翻譯而來。了解更多並加入 MDN Web Docs 社群。",
+      url: "/zh-TW/docs/MDN/Community/Contributing/Translated_content#活躍的語言",
     },
   };
   const inactiveLocaleNoteContent = {
-    de: {
-      linkText:
-        "Der Inhalt dieser Seite wurde von der Community übersetzt, jedoch wird er nicht mehr aktiv gepflegt und kann daher veraltet sein. Wenn du mithelfen möchtest, kannst du hier herausfinden wie deaktivierte Übersetzungen reaktiviert werden können.",
-    },
     "en-US": {
       linkText:
         "This page was translated from English by the community, but it's not maintained and may be out-of-date. To help maintain it, learn how to activate locales.",
     },
-    es: {
-      linkText:
-        "Esta página fue traducida del inglés por la comunidad, pero no se mantiene activamente, por lo que puede estar desactualizada. Si desea ayudar a mantenerlo, descubra cómo activar las configuraciones regionales inactivas.",
-    },
   };
 
   const linkText = isActive
-    ? (activeLocaleNoteContent[locale] &&
-        activeLocaleNoteContent[locale].linkText) ||
+    ? activeLocaleNoteContent[locale]?.linkText ||
       activeLocaleNoteContent["en-US"].linkText
-    : (inactiveLocaleNoteContent[locale] &&
-        inactiveLocaleNoteContent[locale].linkText) ||
+    : inactiveLocaleNoteContent[locale]?.linkText ||
       inactiveLocaleNoteContent["en-US"].linkText;
   const url = isActive
-    ? (activeLocaleNoteContent[locale] &&
-        activeLocaleNoteContent[locale].url) ||
+    ? activeLocaleNoteContent[locale]?.url ||
       activeLocaleNoteContent["en-US"].url
     : "https://github.com/mdn/translated-content/blob/main/PEERS_GUIDELINES.md#activating-a-locale";
 
-  const type = isActive ? "neutral" : "warning";
-  return <NoteBanner linkText={linkText} url={url} type={type} />;
+  const type = locale === "de" ? "experimental" : isActive ? "info" : "warning";
+  return (
+    <NoteBanner url={url} type={type}>
+      {linkText}
+    </NoteBanner>
+  );
 }

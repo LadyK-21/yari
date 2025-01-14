@@ -1,31 +1,35 @@
 @use "../../vars" as *;
 
 .breadcrumbs-container {
-  display: flex;
   align-items: center;
+  display: flex;
   margin-right: auto;
 
   ol {
+    display: flex;
+    flex-wrap: wrap;
     line-height: 1.2;
+    padding: 0.25rem 0;
+    row-gap: 0.25rem;
   }
 
   li {
     display: none;
     hyphens: auto;
 
-    // only show first and last on mobile
-    &:first-child,
-    &:last-child {
+    // only show last two items on mobile
+    &:nth-last-child(-n + 2) {
       display: inline-flex;
     }
 
     .breadcrumb {
       &::after {
-        margin-right: 0.5rem;
         background-color: var(--icon-secondary);
         content: "";
         display: block;
+        flex-shrink: 0;
         height: 12px;
+        margin-right: 0.5rem;
         mask-image: url("../../../assets/icons/chevron.svg");
         mask-size: 12px;
         transform: rotate(-90deg);
@@ -50,9 +54,9 @@
         outline: 0;
 
         [property="name"] {
-          outline-style: auto;
           outline-color: var(--accent-primary);
           outline-offset: 1px;
+          outline-style: auto;
         }
       }
     }
@@ -63,7 +67,7 @@
     }
   }
 
-  @media screen and (min-width: $screen-xl) {
+  @media (min-width: $screen-xl) {
     li {
       display: inline-flex;
     }

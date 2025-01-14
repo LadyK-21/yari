@@ -1,7 +1,7 @@
 .toggle-show-flaws {
   p {
-    margin: 0;
     font: var(--type-smaller-font-size);
+    margin: 0;
   }
 
   button.button {
@@ -25,17 +25,18 @@
       font-weight: var(--font-body-strong-weight);
     }
   }
+
   .flaw {
     li {
       margin-bottom: 15px;
     }
 
     ins {
-      background-color: #d4fcbc;
+      background-color: var(--background-ins);
     }
+
     del {
-      text-decoration: none;
-      background-color: #fbb;
+      background-color: var(--background-del);
     }
 
     .explanation-notes li {
@@ -44,8 +45,8 @@
   }
 
   .macro-filepath-in-prerequisite {
+    background-color: #ffa500;
     font-size: 80%;
-    background-color: orange;
     padding: 1px 5px;
   }
 

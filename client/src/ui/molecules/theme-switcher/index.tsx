@@ -6,17 +6,24 @@ import { Submenu } from "../submenu";
 import { DropdownMenu, DropdownMenuWrapper } from "../dropdown";
 
 import "./index.scss";
-import { postToIEx, switchTheme } from "../../../utils";
+import { switchTheme } from "../../../utils";
+import { Theme } from "../../../types/theme";
+import { useUIStatus } from "../../../ui-context";
+import { useGleanClick } from "../../../telemetry/glean-context";
+import { THEME_SWITCHER } from "../../../telemetry/constants";
 
 type ThemeButton = {
-  id: string;
+  id: Theme;
   label: string;
 };
 
 export const ThemeSwitcher = () => {
   const menuId = "themes-menu";
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [activeTheme, setActiveTheme] = React.useState("os-default");
+
+  const gleanClick = useGleanClick();
+  const { setColorScheme } = useUIStatus();
+  const [activeTheme, setActiveTheme] = React.useState<Theme>("os-default");
 
   function ThemeButton({ id, label }: ThemeButton) {
     return (
@@ -26,6 +33,8 @@ export const ThemeSwitcher = () => {
         `}
         icon={`theme-${id}`}
         onClickHandler={() => {
+          gleanClick(`${THEME_SWITCHER}: switch -> ${id}`);
+          setColorScheme(id);
           switchTheme(id, setActiveTheme);
           setIsOpen(false);
         }}
@@ -46,13 +55,15 @@ export const ThemeSwitcher = () => {
   };
 
   React.useEffect(() => {
-    const theme = localStorage.getItem("theme");
-
-    if (theme) {
-      switchTheme(theme, setActiveTheme);
-      postToIEx(theme);
+    let theme: Theme | null = null;
+    try {
+      theme = localStorage.getItem("theme") as Theme;
+    } catch (e) {
+      console.warn("Unable to read theme from localStorage", e);
     }
-  }, [activeTheme]);
+
+    switchTheme(theme ?? "os-default", setActiveTheme);
+  }, []);
 
   return (
     <DropdownMenuWrapper
@@ -62,11 +73,12 @@ export const ThemeSwitcher = () => {
     >
       <Button
         type="action"
-        ariaHasPopup={"menu"}
-        ariaExpanded={isOpen || undefined}
+        aria-haspopup={"menu"}
+        aria-expanded={isOpen || undefined}
         icon={`theme-${activeTheme}`}
         extraClasses="theme-switcher-menu small"
         onClickHandler={() => {
+          gleanClick(`${THEME_SWITCHER}: ${isOpen ? "close" : "open"}`);
           setIsOpen(!isOpen);
         }}
       >
