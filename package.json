@@ -84,7 +84,7 @@
     "http-proxy-middleware": "^2.0.6",
     "image-size": "^1.0.1",
     "image-type": "^4.1.0",
-    "imagemin": "^7.0.1",
+    "imagemin": "^8.0.0",
     "imagemin-gifsicle": "^7.0.0",
     "imagemin-mozjpeg": "^9.0.0",
     "imagemin-pngquant": "^9.0.2",
@@ -117,7 +117,7 @@
     "sanitize-filename": "^1.6.3",
     "send": "^0.18.0",
     "source-map-support": "^0.5.21",
-    "tempy": "^1.0.1",
+    "tempy": "^3.0.0",
     "unified": "^9.2.1",
     "unist-builder": "^2.0.3",
     "unist-util-visit": "^2.0.3"
